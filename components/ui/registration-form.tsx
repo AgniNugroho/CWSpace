@@ -50,12 +50,12 @@ export function RegistrationForm() {
   }
 
   return (
-    <section className="w-full max-w-sm rounded-2xl border border-white/20 bg-white/10 p-7 shadow-2xl backdrop-blur-xl sm:p-8">
+    <section className="w-full max-w-sm rounded-xl border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-xl sm:rounded-2xl sm:p-8">
       <header className="text-center">
-        <h1 className="text-3xl font-bold text-white">Buat Akun</h1>
+        <h1 className="text-2xl font-bold text-white sm:text-3xl">Buat Akun</h1>
         <p className="mt-2 text-sm text-blue-100">Mulai gunakan CWSpace hari ini</p>
       </header>
-      <form className="mt-9 space-y-7" onSubmit={submit} noValidate>
+      <form className="mt-7 space-y-5 sm:mt-9 sm:space-y-7" onSubmit={submit} noValidate>
         <FloatingField label="Nama Lengkap" type="text" value={name} onChange={setName} autoComplete="name" />
         <FloatingField label="Alamat Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
         <FloatingField label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" />

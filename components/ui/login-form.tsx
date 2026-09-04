@@ -164,12 +164,12 @@ export function LoginForm() {
   }
 
   return (
-    <section className="w-full max-w-sm rounded-2xl border border-white/20 bg-white/10 p-7 shadow-2xl backdrop-blur-xl sm:p-8">
+    <section className="w-full max-w-sm rounded-xl border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-xl sm:rounded-2xl sm:p-8">
       <header className="text-center">
-        <h1 className="text-3xl font-bold text-white">Selamat Datang</h1>
+        <h1 className="text-2xl font-bold text-white sm:text-3xl">Selamat Datang</h1>
         <p className="mt-2 text-sm text-blue-100">Masuk untuk melanjutkan</p>
       </header>
-      <form className="mt-9 space-y-7" onSubmit={submit} noValidate>
+      <form className="mt-7 space-y-6 sm:mt-9 sm:space-y-7" onSubmit={submit} noValidate>
         <label className="group relative block border-b-2 border-white/35 pt-1 transition focus-within:border-blue-400">
           <User className="absolute left-0 top-2.5 text-blue-100 transition-all duration-300 group-focus-within:-top-4 group-focus-within:text-blue-300" size={17} />
           <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="peer w-full bg-transparent py-2 pl-7 text-sm text-white outline-none placeholder:text-transparent" placeholder="Alamat email" autoComplete="email" />
@@ -183,7 +183,7 @@ export function LoginForm() {
         {/* <div className="flex justify-end"><button type="button" className="text-xs text-blue-100 transition hover:text-white">Lupa Password?</button></div> */}
         {error && <p className="text-center text-sm text-red-200" role="alert">{error}</p>}
         <button type="submit" disabled={isSubmitting} className="group flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting ? "Memproses..." : "Masuk"} <ArrowRight size={19} className="transition-transform group-hover:translate-x-1" /></button>
-        <div className="flex items-center gap-3 text-[11px] font-medium tracking-wide text-blue-100"><span className="h-px flex-1 bg-white/25" />ATAU LANJUTKAN DENGAN<span className="h-px flex-1 bg-white/25" /></div>
+        <div className="flex items-center gap-2 text-[10px] font-medium tracking-wide text-blue-100 sm:gap-3 sm:text-[11px]"><span className="h-px min-w-4 flex-1 bg-white/25" />ATAU LANJUTKAN DENGAN<span className="h-px min-w-4 flex-1 bg-white/25" /></div>
         <button type="button" className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-blue-50"><img src="/google.svg" alt="" className="size-5" />Masuk dengan Google</button>
       </form>
       <p className="mt-7 text-center text-xs text-blue-100">Belum punya akun? <Link href="/daftar" className="font-semibold text-cyan-200 hover:text-white">Daftar</Link></p>
