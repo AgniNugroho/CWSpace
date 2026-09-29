@@ -13,11 +13,13 @@ import { checkReservationConflict } from "@/lib/reservations/conflict";
 import { BookingSummaryModal } from "@/components/member/BookingSummaryModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+import { Suspense } from "react";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function ReservationPage({ params }: PageProps) {
+function ReservationContent({ params }: PageProps) {
   const resolvedParams = use(params);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -555,5 +557,13 @@ export default function ReservationPage({ params }: PageProps) {
         />
       )}
     </div>
+  );
+}
+
+export default function ReservationPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-400">Memuat formulir reservasi...</div>}>
+      <ReservationContent params={params} />
+    </Suspense>
   );
 }
