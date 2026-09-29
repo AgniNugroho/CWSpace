@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CWSpace",
-  description: "CWSpace.",
+  title: "CWSpace - Coworking Space & Room Reservation",
+  description: "Prototipe Aplikasi Coworking Space untuk Reservasi Ruangan, Membership, dan Pembayaran",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
