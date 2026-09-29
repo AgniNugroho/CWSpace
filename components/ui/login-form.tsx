@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, Suspense } from "react";
 import { ArrowRight, Lock, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const vertexSource = `
@@ -132,8 +132,10 @@ export function SmokeyBackground({ color = "#1d4ed8", className = "" }: SmokeyBa
   return <canvas ref={canvasRef} className={`absolute inset-0 size-full ${className}`} aria-hidden="true" />;
 }
 
-export function LoginForm() {
+function LoginFormInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -155,7 +157,11 @@ export function LoginForm() {
         setError("Email atau password tidak valid.");
         return;
       }
-      router.replace("/dashboard");
+      if (redirectTo && redirectTo.startsWith("/")) {
+        router.replace(redirectTo);
+      } else {
+        router.replace("/dashboard");
+      }
     } catch {
       setError("Konfigurasi Supabase belum lengkap. Periksa file .env.local.");
     } finally {
@@ -188,5 +194,17 @@ export function LoginForm() {
       </form>
       <p className="mt-7 text-center text-xs text-blue-100">Belum punya akun? <Link href="/daftar" className="font-semibold text-cyan-200 hover:text-white">Daftar</Link></p>
     </section>
+  );
+}
+
+export function LoginForm() {
+  return (
+    <Suspense fallback={
+      <section className="w-full max-w-sm rounded-xl border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-xl sm:rounded-2xl sm:p-8 text-center text-white">
+        <p className="text-sm">Memuat formulir masuk...</p>
+      </section>
+    }>
+      <LoginFormInner />
+    </Suspense>
   );
 }

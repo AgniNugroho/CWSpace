@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
   Building2, Calendar, Clock, CreditCard, ShieldCheck, 
-  AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Upload, QrCode
+  AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Upload, QrCode, Loader2
 } from "lucide-react";
 import { Room, PaymentMethod, UserMembership } from "@/lib/types/database";
 import { fetchRoomByIdFromDatabase } from "@/lib/rooms/service";
@@ -28,6 +28,7 @@ function ReservationContent({ params }: PageProps) {
   const [room, setRoom] = useState<Room | null>(null);
   const [user, setUser] = useState<any>(null);
   const [userMembership, setUserMembership] = useState<UserMembership | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Form State
   const initialDate = searchParams.get("date") || new Date().toISOString().split("T")[0];
@@ -53,7 +54,14 @@ function ReservationContent({ params }: PageProps) {
       try {
         const supabase = createSupabaseBrowserClient();
         const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+        if (!currentUser) {
+          router.replace(`/login?redirectTo=/reservasi/${roomId}`);
+          return;
+        }
+
         setUser(currentUser);
+        setIsCheckingAuth(false);
 
         // Fetch Room from Database
         const dbRoom = await fetchRoomByIdFromDatabase(roomId);
@@ -209,6 +217,24 @@ function ReservationContent({ params }: PageProps) {
       setIsSubmitting(false);
     }
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-28 text-center">
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-white/10 border border-white/20 backdrop-blur-xl shadow-xl">
+            <Loader2 className="animate-spin text-cyan-400" size={28} />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-white">Memeriksa Akses Autentikasi...</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Halaman reservasi ruangan hanya dapat diakses setelah masuk ke akun. Mengalihkan ke login...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
