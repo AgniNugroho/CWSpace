@@ -13,6 +13,7 @@ import { checkReservationConflict } from "@/lib/reservations/conflict";
 import { joinWaitingList, checkUserExistingWaitlist } from "@/lib/waiting-list/service";
 import { BookingSummaryModal } from "@/components/member/BookingSummaryModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { formatPrice, canUseMembershipQuota } from "@/lib/reservations/payment";
 
 import { Suspense } from "react";
 
@@ -126,14 +127,7 @@ function ReservationContent({ params }: PageProps) {
 
   const totalHours = Math.max(0, endHour - startHour);
   const totalPrice = totalHours * (room?.price_per_hour || 0);
-
-  const formatPrice = (val: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
+  const quotaValidation = canUseMembershipQuota(userMembership, totalHours);
 
   const handleAutoJoinWaitingList = async () => {
     if (!user) {
@@ -180,8 +174,8 @@ function ReservationContent({ params }: PageProps) {
     }
 
     if (paymentMethod === "membership_quota") {
-      if (!userMembership || userMembership.remaining_hours < totalHours) {
-        setErrorMessage("Saldo kuota jam membership Anda tidak mencukupi untuk durasi ini.");
+      if (!quotaValidation.allowed) {
+        setErrorMessage(quotaValidation.reason || "Saldo kuota jam membership Anda tidak mencukupi untuk durasi ini.");
         return;
       }
     }
@@ -436,10 +430,12 @@ function ReservationContent({ params }: PageProps) {
               <div className="space-y-2">
                 {/* Method 1: Membership Quota */}
                 <label
-                  className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition ${
-                    paymentMethod === "membership_quota"
-                      ? "border-cyan-400 bg-blue-600/30 text-white"
-                      : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                  className={`flex items-start gap-3 p-3.5 rounded-2xl border transition ${
+                    !quotaValidation.allowed
+                      ? "border-white/5 bg-white/5 opacity-60 cursor-not-allowed text-slate-400"
+                      : paymentMethod === "membership_quota"
+                      ? "border-cyan-400 bg-blue-600/30 text-white cursor-pointer"
+                      : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 cursor-pointer"
                   }`}
                 >
                   <input
@@ -447,8 +443,13 @@ function ReservationContent({ params }: PageProps) {
                     name="payment"
                     value="membership_quota"
                     checked={paymentMethod === "membership_quota"}
-                    onChange={() => setPaymentMethod("membership_quota")}
-                    className="mt-1 accent-cyan-400"
+                    disabled={!quotaValidation.allowed}
+                    onChange={() => {
+                      if (quotaValidation.allowed) {
+                        setPaymentMethod("membership_quota");
+                      }
+                    }}
+                    className="mt-1 accent-cyan-400 disabled:opacity-40"
                   />
                   <div className="flex-1 text-xs">
                     <div className="flex items-center justify-between">
@@ -458,14 +459,21 @@ function ReservationContent({ params }: PageProps) {
                       </span>
                     </div>
                     {userMembership ? (
-                      <p className="mt-1 text-[11px] text-cyan-200">
-                        Paket Aktif: {userMembership.membership?.name || "Membership"} • Sisa Kuota:{" "}
-                        <strong>{userMembership.remaining_hours} Jam</strong>
-                      </p>
+                      <div className="mt-1 space-y-0.5">
+                        <p className="text-[11px] text-cyan-200">
+                          Paket Aktif: {userMembership.membership?.name || "Membership"} • Sisa Kuota:{" "}
+                          <strong>{userMembership.remaining_hours} Jam</strong>
+                        </p>
+                        {!quotaValidation.allowed && (
+                          <p className="text-[11px] font-medium text-amber-300">
+                            {quotaValidation.reason}
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       <p className="mt-1 text-[11px] text-slate-400">
                         Anda belum memiliki paket membership aktif.{" "}
-                        <Link href="/membership" className="text-cyan-300 underline">Beli Paket</Link>
+                        <Link href="/membership" className="text-cyan-300 underline font-semibold">Beli Paket</Link>
                       </p>
                     )}
                   </div>
@@ -536,7 +544,7 @@ function ReservationContent({ params }: PageProps) {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={hasConflict || totalHours <= 0}
+              disabled={hasConflict || totalHours <= 0 || (paymentMethod === "membership_quota" && !quotaValidation.allowed)}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3.5 px-6 text-sm font-bold text-white shadow-xl shadow-blue-500/30 transition hover:from-blue-500 hover:to-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span>Lanjut ke Ringkasan Pembayaran</span>
@@ -583,7 +591,7 @@ function ReservationContent({ params }: PageProps) {
               {paymentMethod === "membership_quota" && (
                 <div className="flex justify-between text-emerald-300 font-medium">
                   <span>Potongan Kuota Membership</span>
-                  <span>- {formatPrice(totalPrice)}</span>
+                  <span>- {totalHours} Jam Kuota ({formatPrice(totalPrice)})</span>
                 </div>
               )}
             </div>
@@ -591,9 +599,14 @@ function ReservationContent({ params }: PageProps) {
             {/* Total Due */}
             <div className="border-t border-white/10 pt-4 flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-300">Total Tagihan:</span>
-              <p className="text-2xl font-black text-cyan-300">
-                {paymentMethod === "membership_quota" ? "0 (Kuota Jam)" : formatPrice(totalPrice)}
-              </p>
+              <div className="text-right">
+                <p className="text-2xl font-black text-cyan-300">
+                  {paymentMethod === "membership_quota" ? `${totalHours} Jam Kuota` : formatPrice(totalPrice)}
+                </p>
+                {paymentMethod === "membership_quota" && (
+                  <p className="text-[11px] text-emerald-300 font-medium mt-0.5">Biaya Tunai: Rp 0 (Bebas Biaya)</p>
+                )}
+              </div>
             </div>
 
             <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-[11px] text-slate-400 flex items-start gap-2">

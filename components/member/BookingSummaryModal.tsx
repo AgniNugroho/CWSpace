@@ -98,9 +98,14 @@ export function BookingSummaryModal({
           {/* Total */}
           <div className="flex justify-between items-center pt-2 text-sm font-bold bg-white/5 p-3 rounded-xl border border-white/10">
             <span className="text-slate-200">Total Pembayaran:</span>
-            <span className="text-lg font-extrabold text-cyan-300">
-              {paymentMethod === "membership_quota" ? "0 (Pakai Kuota)" : formatPrice(totalPrice)}
-            </span>
+            <div className="text-right">
+              <span className="text-lg font-extrabold text-cyan-300">
+                {paymentMethod === "membership_quota" ? `${totalHours} Jam Kuota` : formatPrice(totalPrice)}
+              </span>
+              {paymentMethod === "membership_quota" && (
+                <p className="text-[10px] text-emerald-300 font-medium">Biaya Tunai: Rp 0 (Bebas Biaya)</p>
+              )}
+            </div>
           </div>
         </div>
 

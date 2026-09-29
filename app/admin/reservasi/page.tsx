@@ -156,7 +156,7 @@ export default function AdminReservationsPage() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 font-bold text-white">
-                      {res.payment_method === "membership_quota" ? "0 (Kuota Jam)" : formatPrice(res.total_price)}
+                      {res.payment_method === "membership_quota" ? `${res.total_hours} Jam Kuota` : formatPrice(res.total_price)}
                     </td>
                     <td className="py-3.5 px-4">
                       <span className={`inline-flex rounded-lg px-2.5 py-1 text-[10px] font-extrabold ${

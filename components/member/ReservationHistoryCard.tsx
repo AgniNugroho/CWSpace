@@ -119,7 +119,7 @@ export function ReservationHistoryCard({
             <span>Pembayaran & Total</span>
           </span>
           <p className="font-semibold text-white">
-            {payment_method === "membership_quota" ? "0 (Kuota Jam)" : formatPrice(total_price)}
+            {payment_method === "membership_quota" ? `${total_hours} Jam Kuota` : formatPrice(total_price)}
           </p>
           <p className="text-[10px] text-slate-400">{paymentLabels[payment_method] || payment_method}</p>
         </div>
