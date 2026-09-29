@@ -59,13 +59,21 @@ export function Navbar() {
     }
   }
 
-  const navLinks = [
+  const memberNavLinks = [
     { name: "Katalog Ruangan", href: "/", icon: Building2 },
     { name: "Rekomendasi (SAW)", href: "/rekomendasi", icon: Sparkles, highlight: true },
     { name: "Membership", href: "/membership", icon: CreditCard },
     { name: "Waiting List", href: "/waiting-list", icon: Clock },
     { name: "Riwayat", href: "/riwayat", icon: History },
   ];
+
+  const guestNavLinks = [
+    { name: "Beranda", href: "/", icon: Building2 },
+    { name: "Rekomendasi Ruangan (SAW)", href: "/rekomendasi", icon: Sparkles, highlight: true },
+    { name: "Paket Membership", href: "/membership", icon: CreditCard },
+  ];
+
+  const navLinks = userEmail ? memberNavLinks : guestNavLinks;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/15 bg-slate-950/80 backdrop-blur-xl">
