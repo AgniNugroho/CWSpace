@@ -236,10 +236,10 @@ export default function RoomDetailPage({ params }: PageProps) {
               </Link>
 
               <Link
-                href={`/waiting-list?room=${room?.id}&date=${selectedDate}`}
+                href={`/reservasi/${room?.id}?date=${selectedDate}`}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:bg-white/15 transition"
               >
-                <span>Masuk Antrean Waiting List</span>
+                <span>Cek Slot & Antrean di Reservasi</span>
               </Link>
             </div>
           </div>

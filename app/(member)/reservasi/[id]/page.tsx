@@ -10,6 +10,7 @@ import {
 import { Room, PaymentMethod, UserMembership } from "@/lib/types/database";
 import { fetchRoomByIdFromDatabase } from "@/lib/rooms/service";
 import { checkReservationConflict } from "@/lib/reservations/conflict";
+import { joinWaitingList } from "@/lib/waiting-list/service";
 import { BookingSummaryModal } from "@/components/member/BookingSummaryModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -44,6 +45,7 @@ function ReservationContent({ params }: PageProps) {
   const [hasConflict, setHasConflict] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isJoiningWaitingList, setIsJoiningWaitingList] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const hoursOptions = Array.from({ length: 14 }, (_, i) => i + 8); // 8 to 21
@@ -122,6 +124,31 @@ function ReservationContent({ params }: PageProps) {
       currency: "IDR",
       maximumFractionDigits: 0,
     }).format(val);
+  };
+
+  const handleAutoJoinWaitingList = async () => {
+    if (!user) {
+      router.push(`/login?redirectTo=/reservasi/${roomId}`);
+      return;
+    }
+
+    setIsJoiningWaitingList(true);
+    setErrorMessage("");
+    try {
+      const startIso = `${selectedDate}T${String(startHour).padStart(2, "0")}:00:00Z`;
+      const endIso = `${selectedDate}T${String(endHour).padStart(2, "0")}:00:00Z`;
+
+      const res = await joinWaitingList(user.id, roomId, startIso, endIso);
+      if (res.success) {
+        router.push("/waiting-list?joined=true");
+      } else {
+        setErrorMessage(res.error || "Gagal mendaftarkan ke antrean waiting list.");
+      }
+    } catch {
+      setErrorMessage("Terjadi kendala saat mendaftarkan antrean waiting list.");
+    } finally {
+      setIsJoiningWaitingList(false);
+    }
   };
 
   const handlePreConfirm = (e: React.FormEvent) => {
@@ -347,13 +374,24 @@ function ReservationContent({ params }: PageProps) {
                   <p className="text-[11px] text-slate-300">
                     Anda tidak dapat memesan slot ini karena ada reservasi aktif lain. Masuklah ke antrean Waiting List untuk mendapatkan notifikasi jika penyewa membatalkan pesanannya.
                   </p>
-                  <Link
-                    href={`/waiting-list?room=${roomId}&date=${selectedDate}&start=${startHour}&end=${endHour}`}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 font-bold text-white hover:bg-rose-500 transition shadow-md shadow-rose-600/30"
+                  <button
+                    type="button"
+                    onClick={handleAutoJoinWaitingList}
+                    disabled={isJoiningWaitingList}
+                    className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 font-bold text-white hover:bg-rose-500 transition shadow-md shadow-rose-600/30 disabled:opacity-60 cursor-pointer"
                   >
-                    <span>Masuk Antrean Waiting List</span>
-                    <ArrowRight size={14} />
-                  </Link>
+                    {isJoiningWaitingList ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        <span>Mendaftarkan Antrean Otomatis...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Masuk Antrean Waiting List</span>
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
                 </div>
               ) : (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 flex items-center gap-2">
