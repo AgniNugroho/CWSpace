@@ -3,15 +3,12 @@
 import { useEffect, useState, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LineChart, Shield, ArrowLeft, LogOut, Building2, ExternalLink } from "lucide-react";
+import { Shield, ArrowLeft, LogOut, Building2, ExternalLink } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { UserRole } from "@/lib/types/database";
 
 export default function OwnerLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [userRole, setUserRole] = useState<UserRole | null>("owner");
   const [userEmail, setUserEmail] = useState<string | null>("owner@cwspace.id");
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     async function verifyOwnerAccess() {
@@ -20,24 +17,10 @@ export default function OwnerLayout({ children }: { children: ReactNode }) {
         const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
-          setUserEmail(user.email ?? "Owner");
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
-
-          if (profile?.role === "owner" || profile?.role === "admin") {
-            setUserRole("owner");
-          } else {
-            // For thesis demo convenience
-            setUserRole("owner");
-          }
+          setUserEmail(user.email ?? "owner@cwspace.id");
         }
       } catch {
-        setUserRole("owner");
-      } finally {
-        setIsChecking(false);
+        // Fallback
       }
     }
 
@@ -74,6 +57,8 @@ export default function OwnerLayout({ children }: { children: ReactNode }) {
             <span className="sm:hidden">Admin</span>
             <ExternalLink size={12} />
           </Link>
+
+          <span className="text-xs text-slate-400 hidden md:inline px-2">{userEmail}</span>
 
           <Link
             href="/"

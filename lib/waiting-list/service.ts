@@ -1,5 +1,5 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { WaitingList, WaitingListStatus } from "@/lib/types/database";
+import { WaitingList } from "@/lib/types/database";
 
 export async function joinWaitingList(
   userId: string,

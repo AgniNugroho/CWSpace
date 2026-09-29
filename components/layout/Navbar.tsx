@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, Sparkles, CreditCard, Clock, History, Shield, LineChart, LogOut, Menu, X, User } from "lucide-react";
+import { Building2, Sparkles, CreditCard, Clock, History, Shield, LineChart, LogOut, Menu, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { NotificationBell } from "./NotificationBell";
 import { UserRole } from "@/lib/types/database";

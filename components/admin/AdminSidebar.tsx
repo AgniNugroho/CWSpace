@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Building2, LayoutDashboard, DoorOpen, CalendarDays, 
+  LayoutDashboard, DoorOpen, CalendarDays, 
   CreditCard, Clock, LineChart, ArrowLeft, Shield 
 } from "lucide-react";
 import { UserRole } from "@/lib/types/database";

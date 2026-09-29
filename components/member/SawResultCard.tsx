@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Trophy, Users, DollarSign, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, Trophy, Users, Sparkles } from "lucide-react";
 import { SawResult } from "@/lib/types/database";
 
 interface SawResultCardProps {

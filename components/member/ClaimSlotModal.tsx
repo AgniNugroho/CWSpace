@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Clock, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
+import { X, Clock, Sparkles, ArrowRight } from "lucide-react";
 import { WaitingList } from "@/lib/types/database";
 
 interface ClaimSlotModalProps {

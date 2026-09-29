@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { 
   DollarSign, Users, DoorOpen, TrendingUp, 
@@ -11,13 +10,6 @@ import { OccupancyChart } from "@/components/owner/OccupancyChart";
 import { RevenueChart } from "@/components/owner/RevenueChart";
 
 export default function OwnerDashboardPage() {
-  const formatPrice = (val: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
 
   return (
     <div className="space-y-8">

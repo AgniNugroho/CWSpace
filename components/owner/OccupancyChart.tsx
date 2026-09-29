@@ -1,6 +1,6 @@
 "use client";
 
-import { DoorOpen, TrendingUp } from "lucide-react";
+import { DoorOpen } from "lucide-react";
 
 interface RoomOccupancy {
   name: string;

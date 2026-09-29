@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, PieChart, ArrowUpRight } from "lucide-react";
+import { PieChart } from "lucide-react";
 
 export function RevenueChart() {
   const streams = [

@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Users, ArrowRight, XCircle, Sparkles, CheckCircle2 } from "lucide-react";
+import { Clock, Users, ArrowRight, XCircle, Sparkles } from "lucide-react";
 import { WaitingList } from "@/lib/types/database";
 
 interface WaitingListCardProps {

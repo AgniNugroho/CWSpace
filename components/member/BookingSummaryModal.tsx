@@ -1,6 +1,6 @@
 "use client";
 
-import { X, CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
+import { X, ShieldCheck, ArrowRight } from "lucide-react";
 import { Room, PaymentMethod } from "@/lib/types/database";
 
 interface BookingSummaryModalProps {

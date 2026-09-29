@@ -1,18 +1,16 @@
 "use client";
 
-import { Calendar, Clock, CreditCard, ShieldCheck, XCircle, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Calendar, Clock, CreditCard, ShieldCheck, XCircle, CheckCircle2 } from "lucide-react";
 import { Reservation, ReservationStatus } from "@/lib/types/database";
 
 interface ReservationHistoryCardProps {
   reservation: Reservation;
   onCancel: (id: string) => void;
-  onUploadProof?: (id: string) => void;
 }
 
 export function ReservationHistoryCard({
   reservation,
   onCancel,
-  onUploadProof,
 }: ReservationHistoryCardProps) {
   const { id, room, start_time, end_time, total_hours, total_price, payment_method, status, notes } = reservation;
 

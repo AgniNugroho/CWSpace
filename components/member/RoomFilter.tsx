@@ -1,7 +1,6 @@
 "use client";
 
 import { Search, Filter, SlidersHorizontal } from "lucide-react";
-import { RoomCategory } from "@/lib/types/database";
 
 interface RoomFilterProps {
   search: string;

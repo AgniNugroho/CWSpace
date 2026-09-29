@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Clock, Users, Bell, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Clock, Bell } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
 
+function computeWaitlistDeadline(): string {
+  return new Date(Date.now() + 30 * 60 * 1000).toISOString();
+}
+
 export default function AdminWaitingListPage() {
   const [waitlists, setWaitlists] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadAllWaitlists() {
@@ -66,10 +70,10 @@ export default function AdminWaitingListPage() {
     void loadAllWaitlists();
   }, []);
 
-  const handleNotifySlot = async (waitlistId: string) => {
+  const handleNotifySlot = useCallback(async (waitlistId: string) => {
+    const deadline = computeWaitlistDeadline();
     try {
       const supabase = createSupabaseBrowserClient();
-      const deadline = new Date(Date.now() + 30 * 60 * 1000).toISOString();
       await supabase
         .from("waiting_lists")
         .update({
@@ -79,11 +83,11 @@ export default function AdminWaitingListPage() {
         })
         .eq("id", waitlistId);
 
-      setWaitlists(waitlists.map((w) => (w.id === waitlistId ? { ...w, status: "notified", claim_deadline: deadline } : w)));
+      setWaitlists((prev) => prev.map((w) => (w.id === waitlistId ? { ...w, status: "notified", claim_deadline: deadline } : w)));
     } catch {
-      setWaitlists(waitlists.map((w) => (w.id === waitlistId ? { ...w, status: "notified" } : w)));
+      setWaitlists((prev) => prev.map((w) => (w.id === waitlistId ? { ...w, status: "notified" } : w)));
     }
-  };
+  }, []);
 
   return (
     <div className="space-y-8">
