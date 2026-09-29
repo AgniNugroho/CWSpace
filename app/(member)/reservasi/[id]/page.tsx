@@ -8,7 +8,7 @@ import {
   AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Upload, QrCode
 } from "lucide-react";
 import { Room, PaymentMethod, UserMembership } from "@/lib/types/database";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
+import { fetchRoomByIdFromDatabase } from "@/lib/rooms/service";
 import { checkReservationConflict } from "@/lib/reservations/conflict";
 import { BookingSummaryModal } from "@/components/member/BookingSummaryModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -55,24 +55,9 @@ function ReservationContent({ params }: PageProps) {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         setUser(currentUser);
 
-        // Fetch Room
-        const { data: roomData } = await supabase
-          .from("rooms")
-          .select("id, name, category, capacity, price_per_hour, description, image_url, is_active")
-          .eq("id", roomId)
-          .single();
-
-        if (roomData) {
-          setRoom({
-            ...roomData,
-            price_per_hour: Number(roomData.price_per_hour),
-            created_at: "",
-            updated_at: "",
-          });
-        } else {
-          const found = INITIAL_ROOMS.find((r) => r.id === roomId);
-          setRoom(found || INITIAL_ROOMS[0]);
-        }
+        // Fetch Room from Database
+        const dbRoom = await fetchRoomByIdFromDatabase(roomId);
+        setRoom(dbRoom);
 
         // Fetch Active Membership for current user
         if (currentUser) {
@@ -93,8 +78,7 @@ function ReservationContent({ params }: PageProps) {
           }
         }
       } catch {
-        const found = INITIAL_ROOMS.find((r) => r.id === roomId);
-        setRoom(found || INITIAL_ROOMS[0]);
+        setRoom(null);
       }
     }
 
@@ -111,13 +95,6 @@ function ReservationContent({ params }: PageProps) {
 
       const startIso = `${selectedDate}T${String(startHour).padStart(2, "0")}:00:00Z`;
       const endIso = `${selectedDate}T${String(endHour).padStart(2, "0")}:00:00Z`;
-
-      // Mock conflict simulation for specific demo times
-      if (roomId === INITIAL_ROOMS[0].id && startHour === 10) {
-        setHasConflict(true);
-        setIsCheckingConflict(false);
-        return;
-      }
 
       const result = await checkReservationConflict(roomId, startIso, endIso);
       setHasConflict(result.hasConflict);
@@ -218,7 +195,7 @@ function ReservationContent({ params }: PageProps) {
         amount: paymentMethod === "membership_quota" ? 0 : totalPrice,
         payment_type: "reservasi",
         payment_method: paymentMethod,
-        proof_image_url: proofFile || "https://dummyimage.com/600x400/1e293b/fff&text=Bukti+Transfer",
+        proof_image_url: proofFile || null,
         status: paymentMethod === "membership_quota" ? "verified" : "pending",
       });
 

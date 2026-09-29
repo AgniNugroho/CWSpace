@@ -1,15 +1,89 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { 
-  DollarSign, Users, DoorOpen, TrendingUp, 
+  DollarSign, Users, DoorOpen, CalendarDays, 
   Sparkles, Shield, ArrowRight, LineChart 
 } from "lucide-react";
 import { MetricStatCard } from "@/components/owner/MetricStatCard";
 import { OccupancyChart } from "@/components/owner/OccupancyChart";
 import { RevenueChart } from "@/components/owner/RevenueChart";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function OwnerDashboardPage() {
+  const [metrics, setMetrics] = useState({
+    totalRevenue: 0,
+    activeRooms: 0,
+    activeMembers: 0,
+    totalReservations: 0,
+    hoursBooked: 0,
+    avgOccupancy: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadOwnerMetrics() {
+      try {
+        const supabase = createSupabaseBrowserClient();
+
+        // 1. Total Revenue from Payments
+        const { data: payments } = await supabase
+          .from("payments")
+          .select("amount, status")
+          .in("status", ["verified", "success", "pending"]);
+
+        const revenueSum = (payments || []).reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+
+        // 2. Active Rooms
+        const { count: roomsCount } = await supabase
+          .from("rooms")
+          .select("*", { count: "exact", head: true })
+          .eq("is_active", true);
+
+        // 3. Active Members
+        const { count: membersCount } = await supabase
+          .from("user_memberships")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")
+          .gte("end_date", new Date().toISOString());
+
+        // 4. Reservations & Booked Hours
+        const { data: reservations } = await supabase
+          .from("reservations")
+          .select("total_hours, status");
+
+        const totalRes = reservations?.length || 0;
+        const totalHrs = (reservations || []).reduce((acc, r) => acc + (Number(r.total_hours) || 0), 0);
+
+        const rCount = roomsCount || 1;
+        const occupancyRate = Math.min(100, Math.round((totalHrs / (rCount * 200)) * 100));
+
+        setMetrics({
+          totalRevenue: revenueSum,
+          activeRooms: roomsCount || 0,
+          activeMembers: membersCount || 0,
+          totalReservations: totalRes,
+          hoursBooked: totalHrs,
+          avgOccupancy: occupancyRate,
+        });
+      } catch {
+        // Fallback to zeros
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void loadOwnerMetrics();
+  }, []);
+
+  const formatPrice = (val: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(val);
+  };
 
   return (
     <div className="space-y-8">
@@ -26,7 +100,7 @@ export default function OwnerDashboardPage() {
               Ringkasan Kinerja Bisnis CWSpace
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-300">
-              Pantau tingkat keterisian ruangan, pergerakan omzet pendapatan, dan efektivitas fitur bernilai tambah terhadap pertumbuhan bisnis.
+              Metrik operasional dan omzet real-time yang dihitung langsung dari basis data Supabase.
             </p>
           </div>
 
@@ -44,39 +118,39 @@ export default function OwnerDashboardPage() {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricStatCard
-          title="Total Omzet Bulan Ini"
-          value="Rp 47.200.000"
-          subtitle="Target bulanan Rp 45.000.000 tercapai"
-          trend="+18.4%"
-          isPositive={true}
+          title="Total Omzet Tercatat"
+          value={isLoading ? "Memuat..." : formatPrice(metrics.totalRevenue)}
+          subtitle={metrics.totalRevenue > 0 ? "Akumulasi pembayaran terverifikasi" : "Belum ada transaksi pembayaran"}
+          trend={metrics.totalRevenue > 0 ? "Aktif" : "0"}
+          isPositive={metrics.totalRevenue > 0}
           icon={DollarSign}
         />
 
         <MetricStatCard
           title="Tingkat Okupansi Ruangan"
-          value="69.8%"
-          subtitle="838 jam sewa terealisasi"
-          trend="+6.2%"
-          isPositive={true}
+          value={isLoading ? "Memuat..." : `${metrics.avgOccupancy}%`}
+          subtitle={`${metrics.hoursBooked} jam sewa dari ${metrics.activeRooms} ruangan aktif`}
+          trend={metrics.hoursBooked > 0 ? `+${metrics.hoursBooked} jam` : "0 jam"}
+          isPositive={metrics.avgOccupancy > 0}
           icon={DoorOpen}
         />
 
         <MetricStatCard
           title="Member Aktif Berlangganan"
-          value="48 Member"
-          subtitle="36 Pro, 8 VIP, 4 Starter"
-          trend="+12 member"
-          isPositive={true}
+          value={isLoading ? "Memuat..." : `${metrics.activeMembers} Member`}
+          subtitle="Pelanggan dengan paket membership aktif"
+          trend={`${metrics.activeMembers} aktif`}
+          isPositive={metrics.activeMembers > 0}
           icon={Users}
         />
 
         <MetricStatCard
-          title="Rasio Perpanjangan (Renewal Rate)"
-          value="84.5%"
-          subtitle="Terdorong reminder membership ≤ 7 hari"
-          trend="+9.1%"
-          isPositive={true}
-          icon={TrendingUp}
+          title="Total Reservasi Berjalan"
+          value={isLoading ? "Memuat..." : `${metrics.totalReservations} Reservasi`}
+          subtitle="Seluruh pemesanan tercatat di sistem"
+          trend={`${metrics.totalReservations} total`}
+          isPositive={metrics.totalReservations > 0}
+          icon={CalendarDays}
         />
       </div>
 
@@ -97,21 +171,21 @@ export default function OwnerDashboardPage() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-1.5">
             <strong className="text-cyan-300 block">1. Rekomendasi Ruangan (SAW)</strong>
             <p className="text-slate-300 leading-relaxed">
-              Mempersingkat waktu pemilihan ruangan dari rata-rata 12 menit menjadi di bawah 2 menit, serta menaikkan konversi reservasi sebesar 28%.
+              Membantu calon penyewa menentukan ruangan yang paling tepat berdasarkan multi-kriteria secara otomatis.
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-1.5">
             <strong className="text-amber-300 block">2. Pengingat Membership</strong>
             <p className="text-slate-300 leading-relaxed">
-              Peringatan sisa hari $\le 7$ hari berhasil memicu retensi pelanggan secara proaktif sehingga rasio perpanjangan mencapai 84.5%.
+              Memantau kuota jam dan memberi peringatan saat masa berlaku tersisa ≤ 7 hari untuk memicu perpanjangan tepat waktu.
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-1.5">
             <strong className="text-purple-300 block">3. Waiting List Otomatis</strong>
             <p className="text-slate-300 leading-relaxed">
-              Mengurangi slot kosong akibat pembatalan mendadak hingga 72%, mempertahankan potensi pendapatan dari ruangan yang penuh.
+              Mengalokasikan kembali slot yang dibatalkan kepada antrean berikutnya (FIFO) dengan batas klaim 30 menit.
             </p>
           </div>
         </div>

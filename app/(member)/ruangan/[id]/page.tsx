@@ -8,7 +8,7 @@ import {
   ArrowLeft, ArrowRight, ShieldCheck, AlertCircle 
 } from "lucide-react";
 import { Room } from "@/lib/types/database";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
+import { fetchRoomByIdFromDatabase } from "@/lib/rooms/service";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface PageProps {
@@ -33,41 +33,12 @@ export default function RoomDetailPage({ params }: PageProps) {
     async function loadRoomAndSchedule() {
       setIsLoading(true);
       try {
-        const supabase = createSupabaseBrowserClient();
-
-        // 1. Fetch room detail
-        const { data: roomData, error } = await supabase
-          .from("rooms")
-          .select(`
-            id, name, category, capacity, price_per_hour, description, image_url, is_active, created_at, updated_at,
-            room_facilities (
-              facilities ( id, name )
-            )
-          `)
-          .eq("id", roomId)
-          .single();
-
-        if (!error && roomData) {
-          setRoom({
-            id: roomData.id,
-            name: roomData.name,
-            category: roomData.category,
-            capacity: roomData.capacity,
-            price_per_hour: Number(roomData.price_per_hour),
-            description: roomData.description,
-            image_url: roomData.image_url,
-            is_active: roomData.is_active,
-            created_at: roomData.created_at,
-            updated_at: roomData.updated_at,
-            facilities: (roomData.room_facilities || []).map((rf: any) => rf.facilities).filter(Boolean),
-          });
-        } else {
-          // Fallback
-          const found = INITIAL_ROOMS.find((r) => r.id === roomId);
-          setRoom(found || INITIAL_ROOMS[0]);
-        }
+        // 1. Fetch room detail from database
+        const dbRoom = await fetchRoomByIdFromDatabase(roomId);
+        setRoom(dbRoom);
 
         // 2. Fetch reservations on selected date
+        const supabase = createSupabaseBrowserClient();
         const startOfDay = `${selectedDate}T00:00:00Z`;
         const endOfDay = `${selectedDate}T23:59:59Z`;
 
@@ -75,7 +46,7 @@ export default function RoomDetailPage({ params }: PageProps) {
           .from("reservations")
           .select("start_time, end_time, status")
           .eq("room_id", roomId)
-          .in("status", ["menunggu_verifikasi", "dikonfirmasi"])
+          .in("status", ["menunggu_verifikasi", "dikonfirmasi", "pending", "confirmed"])
           .gte("end_time", startOfDay)
           .lte("start_time", endOfDay);
 
@@ -88,17 +59,10 @@ export default function RoomDetailPage({ params }: PageProps) {
               booked.push(h);
             }
           });
-        } else {
-          // Seed simulation: Mock booked hours for testing
-          if (roomId === INITIAL_ROOMS[0].id) {
-            booked.push(10, 11, 14, 15);
-          }
         }
         setBookedSlots(booked);
       } catch {
-        const found = INITIAL_ROOMS.find((r) => r.id === roomId);
-        setRoom(found || INITIAL_ROOMS[0]);
-        setBookedSlots([10, 11, 14, 15]);
+        setBookedSlots([]);
       } finally {
         setIsLoading(false);
       }

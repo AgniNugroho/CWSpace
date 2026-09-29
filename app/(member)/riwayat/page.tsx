@@ -2,16 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { History, Calendar, CheckCircle2, Clock, XCircle, Sparkles, Building2, ArrowRight } from "lucide-react";
+import { History, Calendar, CheckCircle2, Building2 } from "lucide-react";
 import { Reservation } from "@/lib/types/database";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
 import { ReservationHistoryCard } from "@/components/member/ReservationHistoryCard";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function HistoryPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "active" | "completed" | "cancelled">("all");
-  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cancelNotification, setCancelNotification] = useState("");
 
@@ -20,7 +18,6 @@ export default function HistoryPage() {
       try {
         const supabase = createSupabaseBrowserClient();
         const { data: { user: currentUser } } = await supabase.auth.getUser();
-        setUser(currentUser);
 
         if (currentUser) {
           const { data, error } = await supabase
@@ -40,43 +37,11 @@ export default function HistoryPage() {
               room: item.rooms,
             })));
           } else {
-            // Seed sample demo reservations for user
-            const todayStr = new Date().toISOString().split("T")[0];
-            setReservations([
-              {
-                id: "res-demo-1",
-                user_id: currentUser.id,
-                room_id: INITIAL_ROOMS[0].id,
-                start_time: `${todayStr}T14:00:00Z`,
-                end_time: `${todayStr}T16:00:00Z`,
-                total_hours: 2,
-                total_price: 200000,
-                payment_method: "transfer_bank",
-                status: "menunggu_verifikasi",
-                notes: "Tolong siapkan whiteboard marker warna hitam dan biru.",
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                room: INITIAL_ROOMS[0],
-              },
-              {
-                id: "res-demo-2",
-                user_id: currentUser.id,
-                room_id: INITIAL_ROOMS[1].id,
-                start_time: `${new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}T09:00:00Z`,
-                end_time: `${new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}T12:00:00Z`,
-                total_hours: 3,
-                total_price: 540000,
-                payment_method: "membership_quota",
-                status: "selesai",
-                created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-                room: INITIAL_ROOMS[1],
-              },
-            ]);
+            setReservations([]);
           }
         }
       } catch {
-        // Fallback
+        setReservations([]);
       } finally {
         setIsLoading(false);
       }

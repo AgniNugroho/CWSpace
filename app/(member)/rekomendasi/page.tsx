@@ -3,14 +3,13 @@
 import { useState, useEffect } from "react";
 import { Sparkles, BookOpen, CheckCircle, ArrowDown } from "lucide-react";
 import { Room, UserPreferences, SawResult } from "@/lib/types/database";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
+import { fetchRoomsFromDatabase } from "@/lib/rooms/service";
 import { calculateSawRanking } from "@/lib/algorithms/saw";
 import { SawRecommendationForm } from "@/components/member/SawRecommendationForm";
 import { SawResultCard } from "@/components/member/SawResultCard";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function RekomendasiPage() {
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [results, setResults] = useState<SawResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasCalculated, setHasCalculated] = useState(false);
@@ -19,43 +18,10 @@ export default function RekomendasiPage() {
   useEffect(() => {
     async function loadRooms() {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data, error } = await supabase
-          .from("rooms")
-          .select(`
-            id, name, category, capacity, price_per_hour, description, image_url, is_active, created_at, updated_at,
-            room_facilities (
-              facilities ( id, name )
-            )
-          `)
-          .eq("is_active", true);
-
-        if (!error && data && data.length > 0) {
-          const mapped: Room[] = data.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            category: r.category,
-            capacity: r.capacity,
-            price_per_hour: Number(r.price_per_hour),
-            description: r.description,
-            image_url: r.image_url,
-            is_active: r.is_active,
-            created_at: r.created_at,
-            updated_at: r.updated_at,
-            facilities: (r.room_facilities || []).map((rf: any) => rf.facilities).filter(Boolean),
-          }));
-          setRooms(mapped);
-          // Initial calculation
-          const initialRanking = calculateSawRanking(mapped, {
-            attendees: 6,
-            requiredFacilities: ["Smart TV & Video Conf", "Whiteboard Glass"],
-            maxBudgetPerHour: 200000,
-            activityType: "meeting",
-          });
-          setResults(initialRanking);
-          setHasCalculated(true);
-        } else {
-          const initialRanking = calculateSawRanking(INITIAL_ROOMS, {
+        const dbRooms = await fetchRoomsFromDatabase(true);
+        setRooms(dbRooms);
+        if (dbRooms.length > 0) {
+          const initialRanking = calculateSawRanking(dbRooms, {
             attendees: 6,
             requiredFacilities: ["Smart TV & Video Conf", "Whiteboard Glass"],
             maxBudgetPerHour: 200000,
@@ -65,14 +31,7 @@ export default function RekomendasiPage() {
           setHasCalculated(true);
         }
       } catch {
-        const initialRanking = calculateSawRanking(INITIAL_ROOMS, {
-          attendees: 6,
-          requiredFacilities: ["Smart TV & Video Conf", "Whiteboard Glass"],
-          maxBudgetPerHour: 200000,
-          activityType: "meeting",
-        });
-        setResults(initialRanking);
-        setHasCalculated(true);
+        setRooms([]);
       }
     }
 

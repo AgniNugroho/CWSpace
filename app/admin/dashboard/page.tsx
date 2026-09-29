@@ -7,14 +7,13 @@ import {
   ArrowRight, ShieldCheck, AlertCircle, CheckCircle2 
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
-    activeRooms: 6,
-    todayBookings: 3,
-    pendingPayments: 2,
-    activeWaitlists: 1,
+    activeRooms: 0,
+    todayBookings: 0,
+    pendingPayments: 0,
+    activeWaitlists: 0,
   });
 
   const [recentReservations, setRecentReservations] = useState<any[]>([]);
@@ -53,41 +52,15 @@ export default function AdminDashboardPage() {
           .limit(5);
 
         setStats({
-          activeRooms: roomsCount ?? 6,
-          todayBookings: resData?.length ?? 3,
-          pendingPayments: pendingCount ?? 2,
-          activeWaitlists: waitlistCount ?? 1,
+          activeRooms: roomsCount ?? 0,
+          todayBookings: resData?.length ?? 0,
+          pendingPayments: pendingCount ?? 0,
+          activeWaitlists: waitlistCount ?? 0,
         });
 
-        if (resData && resData.length > 0) {
-          setRecentReservations(resData);
-        } else {
-          // Demo fallback
-          setRecentReservations([
-            {
-              id: "res-demo-1",
-              start_time: `${new Date().toISOString().split("T")[0]}T14:00:00Z`,
-              end_time: `${new Date().toISOString().split("T")[0]}T16:00:00Z`,
-              total_price: 200000,
-              payment_method: "transfer_bank",
-              status: "menunggu_verifikasi",
-              rooms: { name: "Meeting Room Alpha" },
-              profiles: { full_name: "Ahmad Fauzi" },
-            },
-            {
-              id: "res-demo-2",
-              start_time: `${new Date().toISOString().split("T")[0]}T10:00:00Z`,
-              end_time: `${new Date().toISOString().split("T")[0]}T12:00:00Z`,
-              total_price: 360000,
-              payment_method: "membership_quota",
-              status: "dikonfirmasi",
-              rooms: { name: "Creative Suite Beta" },
-              profiles: { full_name: "Siti Rahma" },
-            },
-          ]);
-        }
+        setRecentReservations(resData || []);
       } catch {
-        // Fallback
+        setRecentReservations([]);
       }
     }
 
@@ -201,41 +174,49 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {recentReservations.map((res) => {
-                const startH = new Date(res.start_time).getHours();
-                const endH = new Date(res.end_time).getHours();
-                return (
-                  <tr key={res.id} className="hover:bg-white/5 transition">
-                    <td className="py-3 px-4 font-semibold text-white">
-                      {res.profiles?.full_name || "Pelanggan"}
-                    </td>
-                    <td className="py-3 px-4 text-cyan-300 font-medium">
-                      {res.rooms?.name || "Ruangan"}
-                    </td>
-                    <td className="py-3 px-4">
-                      {new Date(res.start_time).toLocaleDateString("id-ID", { day: "numeric", month: "short" })},{" "}
-                      {String(startH).padStart(2, "0")}.00 - {String(endH).padStart(2, "0")}.00
-                    </td>
-                    <td className="py-3 px-4 uppercase text-[10px] text-slate-400">
-                      {res.payment_method.replace("_", " ")}
-                    </td>
-                    <td className="py-3 px-4 font-bold text-white">
-                      {res.payment_method === "membership_quota" ? "0 (Kuota)" : formatPrice(res.total_price)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex rounded-lg px-2 py-0.5 text-[10px] font-bold ${
-                        res.status === "dikonfirmasi"
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                          : res.status === "menunggu_verifikasi"
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          : "bg-slate-500/20 text-slate-300"
-                      }`}>
-                        {res.status.replace("_", " ")}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {recentReservations.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                    Belum ada data reservasi di database.
+                  </td>
+                </tr>
+              ) : (
+                recentReservations.map((res) => {
+                  const startH = new Date(res.start_time).getHours();
+                  const endH = new Date(res.end_time).getHours();
+                  return (
+                    <tr key={res.id} className="hover:bg-white/5 transition">
+                      <td className="py-3 px-4 font-semibold text-white">
+                        {res.profiles?.full_name || "Pelanggan"}
+                      </td>
+                      <td className="py-3 px-4 text-cyan-300 font-medium">
+                        {res.rooms?.name || "Ruangan"}
+                      </td>
+                      <td className="py-3 px-4">
+                        {new Date(res.start_time).toLocaleDateString("id-ID", { day: "numeric", month: "short" })},{" "}
+                        {String(startH).padStart(2, "0")}.00 - {String(endH).padStart(2, "0")}.00
+                      </td>
+                      <td className="py-3 px-4 uppercase text-[10px] text-slate-400">
+                        {res.payment_method?.replace("_", " ") || "transfer"}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-white">
+                        {res.payment_method === "membership_quota" ? "0 (Kuota)" : formatPrice(res.total_price)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex rounded-lg px-2 py-0.5 text-[10px] font-bold ${
+                          res.status === "dikonfirmasi"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : res.status === "menunggu_verifikasi"
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-slate-500/20 text-slate-300"
+                        }`}>
+                          {res.status?.replace("_", " ") || "pending"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

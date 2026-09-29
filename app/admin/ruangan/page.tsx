@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DoorOpen, Plus, Users, Trash2, CheckCircle2, XCircle, X, Sliders } from "lucide-react";
+import { DoorOpen, Plus, Trash2, CheckCircle2, XCircle, X } from "lucide-react";
 import { Room, RoomCategory } from "@/lib/types/database";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
+import { fetchRoomsFromDatabase } from "@/lib/rooms/service";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function AdminRoomsPage() {
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -23,26 +23,10 @@ export default function AdminRoomsPage() {
   useEffect(() => {
     async function loadRooms() {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data, error } = await supabase
-          .from("rooms")
-          .select(`
-            id, name, category, capacity, price_per_hour, description, image_url, is_active, created_at, updated_at,
-            room_facilities (
-              facilities ( id, name )
-            )
-          `)
-          .order("created_at", { ascending: true });
-
-        if (!error && data && data.length > 0) {
-          setRooms(data.map((r: any) => ({
-            ...r,
-            price_per_hour: Number(r.price_per_hour),
-            facilities: (r.room_facilities || []).map((rf: any) => rf.facilities).filter(Boolean),
-          })));
-        }
+        const dbRooms = await fetchRoomsFromDatabase(false);
+        setRooms(dbRooms);
       } catch {
-        // Fallback
+        setRooms([]);
       } finally {
         setIsLoading(false);
       }

@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Clock, Bell } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
 
 function computeWaitlistDeadline(): string {
   return new Date(Date.now() + 30 * 60 * 1000).toISOString();
@@ -26,42 +25,13 @@ export default function AdminWaitingListPage() {
           `)
           .order("created_at", { ascending: false });
 
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setWaitlists(data);
         } else {
-          // Demo fallback
-          const today = new Date().toISOString().split("T")[0];
-          setWaitlists([
-            {
-              id: "wl-1",
-              user_id: "u1",
-              room_id: INITIAL_ROOMS[0].id,
-              desired_start_time: `${today}T10:00:00Z`,
-              desired_end_time: `${today}T12:00:00Z`,
-              queue_number: 1,
-              status: "notified",
-              notified_at: new Date().toISOString(),
-              claim_deadline: new Date(Date.now() + 25 * 60 * 1000).toISOString(),
-              rooms: { name: "Meeting Room Alpha", capacity: 6 },
-              profiles: { full_name: "Ahmad Fauzi", phone: "081298765432" },
-            },
-            {
-              id: "wl-2",
-              user_id: "u2",
-              room_id: INITIAL_ROOMS[0].id,
-              desired_start_time: `${today}T10:00:00Z`,
-              desired_end_time: `${today}T12:00:00Z`,
-              queue_number: 2,
-              status: "waiting",
-              notified_at: null,
-              claim_deadline: null,
-              rooms: { name: "Meeting Room Alpha", capacity: 6 },
-              profiles: { full_name: "Reza Rahardian", phone: "085611223344" },
-            },
-          ]);
+          setWaitlists([]);
         }
       } catch {
-        // Fallback
+        setWaitlists([]);
       } finally {
         setIsLoading(false);
       }
@@ -117,7 +87,14 @@ export default function AdminWaitingListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {waitlists.map((w) => {
+              {waitlists.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                    Belum ada antrean waiting list di database.
+                  </td>
+                </tr>
+              ) : (
+                waitlists.map((w) => {
                 const startH = new Date(w.desired_start_time).getHours();
                 const endH = new Date(w.desired_end_time).getHours();
                 return (
@@ -169,7 +146,7 @@ export default function AdminWaitingListPage() {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

@@ -9,48 +9,9 @@ import { UserQuotaCard } from "@/components/member/UserQuotaCard";
 import { RenewalAlertBanner } from "@/components/member/RenewalAlertBanner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-const INITIAL_MEMBERSHIPS: Membership[] = [
-  {
-    id: "m1",
-    name: "Starter Pass",
-    price: 250000,
-    duration_days: 30,
-    meeting_room_hours: 5,
-    discount_percentage: 5,
-    description: "Cocok untuk freelancer dan profesional mandiri. Akses flexi desk harian dan kuota 5 jam ruang meeting.",
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "m2",
-    name: "Pro Member",
-    price: 600000,
-    duration_days: 30,
-    meeting_room_hours: 20,
-    discount_percentage: 15,
-    description: "Pilihan terpopuler untuk tim kecil & startup. Kuota 20 jam ruang meeting + prioritas reservasi bebas bentrok.",
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "m3",
-    name: "Enterprise VIP",
-    price: 1500000,
-    duration_days: 30,
-    meeting_room_hours: 60,
-    discount_percentage: 25,
-    description: "Solusi menyeluruh untuk tim menengah & konsultan. Kuota 60 jam ruang meeting + diskon 25% sewa event.",
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  },
-];
-
 export default function MembershipPage() {
   const router = useRouter();
-  const [plans, setPlans] = useState<Membership[]>(INITIAL_MEMBERSHIPS);
+  const [plans, setPlans] = useState<Membership[]>([]);
   const [userMembership, setUserMembership] = useState<UserMembership | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +31,7 @@ export default function MembershipPage() {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         setUser(currentUser);
 
-        // Fetch Plans
+        // Fetch Plans from Database
         const { data: plansData } = await supabase
           .from("memberships")
           .select("*")
@@ -83,9 +44,11 @@ export default function MembershipPage() {
             price: Number(p.price),
             discount_percentage: Number(p.discount_percentage),
           })));
+        } else {
+          setPlans([]);
         }
 
-        // Fetch user's active membership
+        // Fetch user's active membership from Database
         if (currentUser) {
           const { data: memberData } = await supabase
             .from("user_memberships")
@@ -95,30 +58,18 @@ export default function MembershipPage() {
             `)
             .eq("user_id", currentUser.id)
             .eq("status", "active")
+            .gte("end_date", new Date().toISOString())
             .order("created_at", { ascending: false })
             .limit(1);
 
           if (memberData && memberData.length > 0) {
             setUserMembership(memberData[0] as any);
           } else {
-            // For Demo testing: Show simulated demo active membership
-            const demoEndDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(); // 5 days left
-            setUserMembership({
-              id: "demo-um-1",
-              user_id: currentUser.id,
-              membership_id: "m2",
-              start_date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-              end_date: demoEndDate,
-              total_hours: 20,
-              remaining_hours: 12,
-              status: "active",
-              created_at: "",
-              membership: INITIAL_MEMBERSHIPS[1],
-            } as any);
+            setUserMembership(null);
           }
         }
       } catch {
-        // Fallback
+        setUserMembership(null);
       } finally {
         setIsLoading(false);
       }
@@ -167,7 +118,7 @@ export default function MembershipPage() {
         payment_type: "membership",
         payment_method: paymentMethod,
         status: "pending",
-        proof_image_url: "https://dummyimage.com/600x400/1e293b/fff&text=Bukti+Membership",
+        proof_image_url: null,
       });
 
       // Update local state

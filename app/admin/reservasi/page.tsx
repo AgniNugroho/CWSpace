@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Filter, Clock, CheckCircle2, XCircle, Search, ShieldCheck } from "lucide-react";
+import { CalendarDays, ShieldCheck } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
 
 export default function AdminReservationsPage() {
   const [reservations, setReservations] = useState<any[]>([]);
@@ -23,51 +22,13 @@ export default function AdminReservationsPage() {
           `)
           .order("start_time", { ascending: false });
 
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setReservations(data);
         } else {
-          // Demo fallback
-          const today = new Date().toISOString().split("T")[0];
-          setReservations([
-            {
-              id: "res-1",
-              start_time: `${today}T10:00:00Z`,
-              end_time: `${today}T12:00:00Z`,
-              total_hours: 2,
-              total_price: 200000,
-              payment_method: "transfer_bank",
-              status: "dikonfirmasi",
-              notes: "Meeting persiapan presentasi proposal.",
-              rooms: { name: "Meeting Room Alpha" },
-              profiles: { full_name: "Budi Santoso", phone: "08123456789" },
-            },
-            {
-              id: "res-2",
-              start_time: `${today}T14:00:00Z`,
-              end_time: `${today}T17:00:00Z`,
-              total_hours: 3,
-              total_price: 540000,
-              payment_method: "membership_quota",
-              status: "menunggu_verifikasi",
-              notes: "Membutuhkan mikrofon nirkabel tambahan.",
-              rooms: { name: "Creative Suite Beta" },
-              profiles: { full_name: "Dewi Lestari", phone: "08567891234" },
-            },
-            {
-              id: "res-3",
-              start_time: `${today}T13:00:00Z`,
-              end_time: `${today}T16:00:00Z`,
-              total_hours: 3,
-              total_price: 360000,
-              payment_method: "transfer_bank",
-              status: "menunggu_verifikasi",
-              rooms: { name: "Podcast & Creator Studio" },
-              profiles: { full_name: "Rizky Pratama", phone: "08987654321" },
-            },
-          ]);
+          setReservations([]);
         }
       } catch {
-        // Fallback
+        setReservations([]);
       } finally {
         setIsLoading(false);
       }
@@ -167,7 +128,14 @@ export default function AdminReservationsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filtered.map((res) => {
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                    Belum ada jadwal reservasi di database.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((res) => {
                 const startH = new Date(res.start_time).getHours();
                 const endH = new Date(res.end_time).getHours();
                 return (
@@ -225,7 +193,7 @@ export default function AdminReservationsPage() {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

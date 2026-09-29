@@ -4,13 +4,12 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Sparkles, ArrowRight, ShieldCheck, Clock, Building2 } from "lucide-react";
 import { Room } from "@/lib/types/database";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
+import { fetchRoomsFromDatabase } from "@/lib/rooms/service";
 import { RoomCard } from "@/components/member/RoomCard";
 import { RoomFilter } from "@/components/member/RoomFilter";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function HomePage() {
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -19,37 +18,10 @@ export default function HomePage() {
   useEffect(() => {
     async function loadRooms() {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data, error } = await supabase
-          .from("rooms")
-          .select(`
-            id, name, category, capacity, price_per_hour, description, image_url, is_active, created_at, updated_at,
-            room_facilities (
-              facilities ( id, name )
-            )
-          `)
-          .eq("is_active", true);
-
-        if (!error && data && data.length > 0) {
-          const mapped: Room[] = data.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            category: r.category,
-            capacity: r.capacity,
-            price_per_hour: Number(r.price_per_hour),
-            description: r.description,
-            image_url: r.image_url,
-            is_active: r.is_active,
-            created_at: r.created_at,
-            updated_at: r.updated_at,
-            facilities: (r.room_facilities || []).map((rf: any) => rf.facilities).filter(Boolean),
-          }));
-          setRooms(mapped);
-        } else {
-          setRooms(INITIAL_ROOMS);
-        }
+        const dbRooms = await fetchRoomsFromDatabase(true);
+        setRooms(dbRooms);
       } catch {
-        setRooms(INITIAL_ROOMS);
+        setRooms([]);
       } finally {
         setIsLoading(false);
       }

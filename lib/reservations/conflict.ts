@@ -18,7 +18,7 @@ export async function checkReservationConflict(
       .from("reservations")
       .select("id, start_time, end_time, status")
       .eq("room_id", roomId)
-      .in("status", ["menunggu_verifikasi", "dikonfirmasi"])
+      .in("status", ["menunggu_pembayaran", "menunggu_verifikasi", "dikonfirmasi"])
       .lt("start_time", endTimeIso)
       .gt("end_time", startTimeIso);
 

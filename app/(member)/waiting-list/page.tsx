@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Clock, Sparkles, Plus, ArrowRight } from "lucide-react";
 import { Room, WaitingList } from "@/lib/types/database";
-import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
+import { fetchRoomsFromDatabase } from "@/lib/rooms/service";
 import { WaitingListCard } from "@/components/member/WaitingListCard";
 import { ClaimSlotModal } from "@/components/member/ClaimSlotModal";
 import { fetchUserWaitingLists, joinWaitingList, cancelWaitingList, claimWaitingSlot } from "@/lib/waiting-list/service";
@@ -16,12 +16,12 @@ function WaitingListContent() {
   const searchParams = useSearchParams();
 
   const [waitlists, setWaitlists] = useState<WaitingList[]>([]);
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // New queue form state
-  const paramRoom = searchParams.get("room") || INITIAL_ROOMS[0].id;
+  const paramRoom = searchParams.get("room") || "";
   const paramDate = searchParams.get("date") || new Date().toISOString().split("T")[0];
   const paramStart = Number(searchParams.get("start") || 10);
   const paramEnd = Number(searchParams.get("end") || 12);
@@ -43,55 +43,27 @@ function WaitingListContent() {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         setUser(currentUser);
 
-        // Fetch Rooms
-        const { data: roomsData } = await supabase
-          .from("rooms")
-          .select("id, name, category, capacity, price_per_hour, image_url")
-          .eq("is_active", true);
-
-        if (roomsData && roomsData.length > 0) {
-          setRooms(roomsData.map((r: any) => ({
-            ...r,
-            price_per_hour: Number(r.price_per_hour),
-            created_at: "",
-            updated_at: "",
-          })));
+        // Fetch Rooms from Database
+        const dbRooms = await fetchRoomsFromDatabase(true);
+        setRooms(dbRooms);
+        if (!selectedRoomId && dbRooms.length > 0) {
+          setSelectedRoomId(dbRooms[0].id);
         }
 
-        // Fetch User Waitlists
+        // Fetch User Waitlists from Database
         if (currentUser) {
           const list = await fetchUserWaitingLists(currentUser.id);
-          if (list && list.length > 0) {
-            setWaitlists(list);
-          } else {
-            // Seed sample notified waitlist for demonstration
-            const demoNotifiedDeadline = new Date(Date.now() + 24 * 60 * 1000).toISOString();
-            setWaitlists([
-              {
-                id: "wl-demo-1",
-                user_id: currentUser.id,
-                room_id: INITIAL_ROOMS[0].id,
-                desired_start_time: `${new Date().toISOString().split("T")[0]}T10:00:00Z`,
-                desired_end_time: `${new Date().toISOString().split("T")[0]}T12:00:00Z`,
-                queue_number: 1,
-                status: "notified",
-                notified_at: new Date().toISOString(),
-                claim_deadline: demoNotifiedDeadline,
-                created_at: new Date().toISOString(),
-                room: INITIAL_ROOMS[0],
-              },
-            ]);
-          }
+          setWaitlists(list || []);
         }
       } catch {
-        // Fallback
+        setWaitlists([]);
       } finally {
         setIsLoading(false);
       }
     }
 
     void loadData();
-  }, []);
+  }, [selectedRoomId]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();

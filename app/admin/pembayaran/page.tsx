@@ -23,41 +23,13 @@ export default function AdminPaymentsPage() {
           `)
           .order("created_at", { ascending: false });
 
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setPayments(data);
         } else {
-          // Demo fallback
-          setPayments([
-            {
-              id: "pay-1",
-              user_id: "u1",
-              reservation_id: "res-1",
-              amount: 200000,
-              payment_type: "reservasi",
-              payment_method: "transfer_bank",
-              proof_image_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80",
-              status: "pending",
-              created_at: new Date().toISOString(),
-              profiles: { full_name: "Budi Santoso", phone: "08123456789" },
-              reservations: { rooms: { name: "Meeting Room Alpha" } },
-            },
-            {
-              id: "pay-2",
-              user_id: "u2",
-              reservation_id: "res-2",
-              amount: 600000,
-              payment_type: "membership",
-              payment_method: "transfer_bank",
-              proof_image_url: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80",
-              status: "pending",
-              created_at: new Date().toISOString(),
-              profiles: { full_name: "Dewi Lestari", phone: "08567891234" },
-              reservations: null,
-            },
-          ]);
+          setPayments([]);
         }
       } catch {
-        // Fallback
+        setPayments([]);
       } finally {
         setIsLoading(false);
       }
@@ -168,7 +140,14 @@ export default function AdminPaymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {payments.map((p) => (
+              {payments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-xs text-slate-400">
+                    Belum ada data pembayaran di database.
+                  </td>
+                </tr>
+              ) : (
+                payments.map((p) => (
                 <tr key={p.id} className="hover:bg-white/5 transition">
                   <td className="py-3.5 px-4">
                     <strong className="text-white block">{p.profiles?.full_name || "Pelanggan"}</strong>
@@ -230,7 +209,7 @@ export default function AdminPaymentsPage() {
                     )}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
