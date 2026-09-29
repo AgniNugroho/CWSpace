@@ -1,9 +1,91 @@
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Sparkles, ArrowRight, Building2, ShieldCheck, Clock } from "lucide-react";
+import { Sparkles, ArrowRight, ShieldCheck, Clock, Building2 } from "lucide-react";
+import { Room } from "@/lib/types/database";
+import { INITIAL_ROOMS } from "@/lib/data/initial-rooms";
+import { RoomCard } from "@/components/member/RoomCard";
+import { RoomFilter } from "@/components/member/RoomFilter";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function HomePage() {
+  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [capacity, setCapacity] = useState("all");
+
+  useEffect(() => {
+    async function loadRooms() {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from("rooms")
+          .select(`
+            id, name, category, capacity, price_per_hour, description, image_url, is_active, created_at, updated_at,
+            room_facilities (
+              facilities ( id, name )
+            )
+          `)
+          .eq("is_active", true);
+
+        if (!error && data && data.length > 0) {
+          const mapped: Room[] = data.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            category: r.category,
+            capacity: r.capacity,
+            price_per_hour: Number(r.price_per_hour),
+            description: r.description,
+            image_url: r.image_url,
+            is_active: r.is_active,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            facilities: (r.room_facilities || []).map((rf: any) => rf.facilities).filter(Boolean),
+          }));
+          setRooms(mapped);
+        } else {
+          setRooms(INITIAL_ROOMS);
+        }
+      } catch {
+        setRooms(INITIAL_ROOMS);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void loadRooms();
+  }, []);
+
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((r) => {
+      // Search
+      if (search.trim()) {
+        const query = search.toLowerCase();
+        const matchName = r.name.toLowerCase().includes(query);
+        const matchDesc = r.description?.toLowerCase().includes(query);
+        const matchFac = (r.facilities || []).some((f) => f.name.toLowerCase().includes(query));
+        if (!matchName && !matchDesc && !matchFac) return false;
+      }
+
+      // Category
+      if (category !== "all" && r.category !== category) {
+        return false;
+      }
+
+      // Capacity
+      if (capacity === "1-4" && (r.capacity < 1 || r.capacity > 4)) return false;
+      if (capacity === "5-10" && (r.capacity < 5 || r.capacity > 10)) return false;
+      if (capacity === "11-20" && (r.capacity < 11 || r.capacity > 20)) return false;
+      if (capacity === "20+" && r.capacity <= 20) return false;
+
+      return true;
+    });
+  }, [rooms, search, category, capacity]);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-3xl border border-white/20 bg-gradient-to-b from-white/10 to-white/5 p-8 sm:p-12 lg:p-16 backdrop-blur-2xl text-center shadow-2xl">
         <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-300">
@@ -40,7 +122,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Feature Badges */}
+        {/* Value Proposition Triad */}
         <div className="mt-12 grid grid-cols-1 gap-4 border-t border-white/15 pt-8 sm:grid-cols-3 text-left">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600/20 text-cyan-300 border border-blue-400/30">
@@ -72,6 +154,62 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Catalog Section */}
+      <section className="space-y-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              <Building2 className="text-cyan-400" size={24} />
+              <span>Daftar Ruangan Tersedia</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Pilih ruangan sesuai kebutuhan tim Anda atau gunakan rekomendasi SAW.
+            </p>
+          </div>
+          <span className="text-xs text-cyan-300 font-semibold bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 self-start">
+            {filteredRooms.length} Ruangan Ditemukan
+          </span>
+        </div>
+
+        {/* Filter component */}
+        <RoomFilter
+          search={search}
+          onSearchChange={setSearch}
+          selectedCategory={category}
+          onCategoryChange={setCategory}
+          capacityFilter={capacity}
+          onCapacityChange={setCapacity}
+        />
+
+        {/* Room Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+            ))}
+          </div>
+        ) : filteredRooms.length === 0 ? (
+          <div className="rounded-2xl border border-white/15 bg-white/5 p-12 text-center">
+            <Building2 size={36} className="mx-auto text-slate-500" />
+            <p className="mt-3 text-sm font-semibold text-white">Tidak ada ruangan yang cocok</p>
+            <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau ubah filter kategori Anda.</p>
+            <button
+              type="button"
+              onClick={() => { setSearch(""); setCategory("all"); setCapacity("all"); }}
+              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
+            >
+              Reset Filter
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredRooms.map((room) => (
+              <RoomCard key={room.id} room={room} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
