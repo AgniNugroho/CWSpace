@@ -1,6 +1,67 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { WaitingList } from "@/lib/types/database";
 
+export function checkDuplicateWaitlist(
+  existingQueues: Array<{
+    user_id: string;
+    room_id: string;
+    desired_start_time: string;
+    desired_end_time: string;
+    status: string;
+  }>,
+  userId: string,
+  roomId: string,
+  startTimeIso: string,
+  endTimeIso: string
+): { isDuplicate: boolean; conflictingQueue?: any } {
+  const duplicate = existingQueues.find((q) => {
+    if (q.user_id !== userId || q.room_id !== roomId) return false;
+    if (q.status !== "waiting" && q.status !== "notified") return false;
+
+    const existingStart = new Date(q.desired_start_time).getTime();
+    const existingEnd = new Date(q.desired_end_time).getTime();
+    const newStart = new Date(startTimeIso).getTime();
+    const newEnd = new Date(endTimeIso).getTime();
+
+    return existingStart < newEnd && existingEnd > newStart;
+  });
+
+  return {
+    isDuplicate: Boolean(duplicate),
+    conflictingQueue: duplicate,
+  };
+}
+
+export async function checkUserExistingWaitlist(
+  userId: string,
+  roomId: string,
+  startTimeIso: string,
+  endTimeIso: string
+): Promise<{ isWaiting: boolean; queue?: WaitingList }> {
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase
+      .from("waiting_lists")
+      .select(`
+        id, user_id, room_id, desired_start_time, desired_end_time, queue_number, status, notified_at, claim_deadline, created_at,
+        rooms ( id, name, category, capacity, price_per_hour, image_url )
+      `)
+      .eq("user_id", userId)
+      .eq("room_id", roomId)
+      .in("status", ["waiting", "notified"])
+      .lt("desired_start_time", endTimeIso)
+      .gt("desired_end_time", startTimeIso)
+      .limit(1);
+
+    if (data && data.length > 0) {
+      return { isWaiting: true, queue: data[0] as any };
+    }
+    return { isWaiting: false };
+  } catch {
+    return { isWaiting: false };
+  }
+}
+
 export async function joinWaitingList(
   userId: string,
   roomId: string,
@@ -10,7 +71,16 @@ export async function joinWaitingList(
   try {
     const supabase = createSupabaseBrowserClient();
 
-    // 1. Calculate next queue number for this room & overlapping time
+    // 1. Prevent duplicate active waiting list entry for the same user on overlapping slot
+    const existingUserWaitlist = await checkUserExistingWaitlist(userId, roomId, startTimeIso, endTimeIso);
+    if (existingUserWaitlist.isWaiting && existingUserWaitlist.queue) {
+      return {
+        success: false,
+        error: `Anda sudah terdaftar dalam antrean waiting list untuk jadwal ruangan ini (Nomor Antrean #${existingUserWaitlist.queue.queue_number}).`,
+      };
+    }
+
+    // 2. Calculate next queue number for this room & overlapping time
     const { data: existingQueues } = await supabase
       .from("waiting_lists")
       .select("queue_number")

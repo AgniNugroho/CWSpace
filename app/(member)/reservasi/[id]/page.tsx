@@ -7,10 +7,10 @@ import {
   Building2, Calendar, Clock, CreditCard, ShieldCheck, 
   AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, Upload, QrCode, Loader2
 } from "lucide-react";
-import { Room, PaymentMethod, UserMembership } from "@/lib/types/database";
+import { Room, PaymentMethod, UserMembership, WaitingList } from "@/lib/types/database";
 import { fetchRoomByIdFromDatabase } from "@/lib/rooms/service";
 import { checkReservationConflict } from "@/lib/reservations/conflict";
-import { joinWaitingList } from "@/lib/waiting-list/service";
+import { joinWaitingList, checkUserExistingWaitlist } from "@/lib/waiting-list/service";
 import { BookingSummaryModal } from "@/components/member/BookingSummaryModal";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -43,6 +43,7 @@ function ReservationContent({ params }: PageProps) {
   // Status & Validation
   const [isCheckingConflict, setIsCheckingConflict] = useState(false);
   const [hasConflict, setHasConflict] = useState(false);
+  const [existingWaitlist, setExistingWaitlist] = useState<WaitingList | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isJoiningWaitingList, setIsJoiningWaitingList] = useState(false);
@@ -108,12 +109,20 @@ function ReservationContent({ params }: PageProps) {
 
       const result = await checkReservationConflict(roomId, startIso, endIso);
       setHasConflict(result.hasConflict);
+
+      if (user) {
+        const waitlistRes = await checkUserExistingWaitlist(user.id, roomId, startIso, endIso);
+        setExistingWaitlist(waitlistRes.isWaiting ? (waitlistRes.queue ?? null) : null);
+      } else {
+        setExistingWaitlist(null);
+      }
+
       setIsCheckingConflict(false);
     }
 
     const timer = setTimeout(verifyConflict, 300);
     return () => clearTimeout(timer);
-  }, [roomId, selectedDate, startHour, endHour]);
+  }, [roomId, selectedDate, startHour, endHour, user]);
 
   const totalHours = Math.max(0, endHour - startHour);
   const totalPrice = totalHours * (room?.price_per_hour || 0);
@@ -374,24 +383,40 @@ function ReservationContent({ params }: PageProps) {
                   <p className="text-[11px] text-slate-300">
                     Anda tidak dapat memesan slot ini karena ada reservasi aktif lain. Masuklah ke antrean Waiting List untuk mendapatkan notifikasi jika penyewa membatalkan pesanannya.
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleAutoJoinWaitingList}
-                    disabled={isJoiningWaitingList}
-                    className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 font-bold text-white hover:bg-rose-500 transition shadow-md shadow-rose-600/30 disabled:opacity-60 cursor-pointer"
-                  >
-                    {isJoiningWaitingList ? (
-                      <>
-                        <Loader2 size={15} className="animate-spin" />
-                        <span>Mendaftarkan Antrean Otomatis...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Masuk Antrean Waiting List</span>
-                        <ArrowRight size={14} />
-                      </>
-                    )}
-                  </button>
+                  {existingWaitlist ? (
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/40 bg-cyan-500/20 px-3.5 py-2 text-xs font-semibold text-cyan-200">
+                        <CheckCircle2 size={15} className="text-cyan-400" />
+                        <span>Anda sudah terdaftar di antrean slot ini (Nomor #{existingWaitlist.queue_number})</span>
+                      </span>
+                      <Link
+                        href="/waiting-list"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-cyan-500 transition shadow-md shadow-cyan-600/30"
+                      >
+                        <span>Lihat Status Antrean</span>
+                        <ArrowRight size={13} />
+                      </Link>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAutoJoinWaitingList}
+                      disabled={isJoiningWaitingList}
+                      className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 font-bold text-white hover:bg-rose-500 transition shadow-md shadow-rose-600/30 disabled:opacity-60 cursor-pointer"
+                    >
+                      {isJoiningWaitingList ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" />
+                          <span>Mendaftarkan Antrean Otomatis...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Masuk Antrean Waiting List</span>
+                          <ArrowRight size={14} />
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 flex items-center gap-2">

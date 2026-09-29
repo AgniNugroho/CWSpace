@@ -7,7 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "eslint",
-        "test": "tsx --test lib/algorithms/__tests__/saw.test.ts"
+        "test": "tsx --test lib/algorithms/__tests__/saw.test.ts lib/waiting-list/__tests__/duplicate.test.ts"
     },
     "dependencies": {
         "@supabase/supabase-js": "^2.115.0",
