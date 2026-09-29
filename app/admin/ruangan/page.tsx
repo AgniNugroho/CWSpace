@@ -70,7 +70,7 @@ export default function AdminRoomsPage() {
       } else {
         // Fallback
         const newDemoRoom: Room = {
-          id: `room-${Date.now()}`,
+          id: String(rooms.length + 1),
           name,
           category,
           capacity,

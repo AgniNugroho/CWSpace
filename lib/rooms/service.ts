@@ -24,8 +24,8 @@ export async function fetchRoomsFromDatabase(onlyActive: boolean = true): Promis
       return [];
     }
 
-    return data.map((r: any) => ({
-      id: r.id,
+    const mapped: Room[] = data.map((r: any) => ({
+      id: String(r.id),
       name: r.name,
       category: r.category,
       capacity: r.capacity,
@@ -37,6 +37,15 @@ export async function fetchRoomsFromDatabase(onlyActive: boolean = true): Promis
       updated_at: r.updated_at,
       facilities: (r.room_facilities || []).map((rf: any) => rf.facilities).filter(Boolean),
     }));
+
+    return mapped.sort((a, b) => {
+      const numA = parseInt(a.id, 10);
+      const numB = parseInt(b.id, 10);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+      return a.id.localeCompare(b.id);
+    });
   } catch {
     return [];
   }
@@ -61,7 +70,7 @@ export async function fetchRoomByIdFromDatabase(id: string): Promise<Room | null
     }
 
     return {
-      id: data.id,
+      id: String(data.id),
       name: data.name,
       category: data.category,
       capacity: data.capacity,
